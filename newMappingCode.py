@@ -26,21 +26,20 @@ def markMap(occurrence): # changes number based on occurrence key (IR, magnet, n
         mazeMap[Y][X] = 3
     else: # normal readings
         mazeMap[Y][X] = 1
+    timeStart = time.time()
 
-def moveLeft():
-    X += 1
-    
-def moveRight():
-    X -= 1
-    
-def moveForward():
-    Y += 1
-    
-def moveBackwards():
-    Y -= 1
-    
+def move(orientation):
+    if(oriententation == 1): # oriented facing front
+        Y += 1
+    else if(orientation == 2): # oriented front facing left (relative to starting position)
+        X += 1
+    else if(orientation == 3): # oriented front facing right (relative to starting position)
+        X -= 1
+    else if(orientation == 4): # oriented front facing towards start
+        Y -= 1
+
 def checkTurns(orientation): # return value of x, y to the left and right of robot
-    if(orientation == 1): # positioned forward relative to starting pt
+    if(orientation == 1 or orientation == 4): # positioned forward relative to starting pt
         if(mazeMap[Y][X + 1] == 1): # left of the robot has been navigated?? DEPENDS ON ORIENTATION, this is on oriented forward, make a variable that tracks orientation values 1 - 4
             return 1 # not sure about this yet, but returning number can be used to determine whether the robot turns left or right, maybe left is obstructed, have it turn right if 1 is returned
         else if(mazeMap[Y][X - 1] == 1): # right of robot
@@ -48,7 +47,7 @@ def checkTurns(orientation): # return value of x, y to the left and right of rob
         else: # pretty sure we won't need this
             return 0
         
-    if(orientation == 2): # positioned turned horizontal relative to start
+    if(orientation == 2 or orientation == 3): # positioned turned horizontal relative to start
         if(mazeMap[Y + 1][X] == 1): # right has been navigated if robot is positioned to the left
             return 1
         else if(mazeMap[Y - 1][X] == 1): # spot between robot and x-axis
@@ -57,11 +56,6 @@ def checkTurns(orientation): # return value of x, y to the left and right of rob
             return 0
         
   # to use this, use conditionals to determine whether to move left or right based on after using Back Up or turning
-        
-try:
-    while True:
-        while(timeStart + boxTime >= time.time()): # have to reset timeStart whenever loop resets
-            
           
         
 except KeyboardInterrupt: # except the program gets interrupted by Ctrl+C on the keyboard.
