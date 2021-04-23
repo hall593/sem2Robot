@@ -25,18 +25,12 @@ rightUltra = 7 # right sensor
 sensor1 = 14 # left IR sensor
 sensor2 = 15 # right IR sensor
 
-totalmag = 0
+
 
 mazeMap = numpy.zeros(shape = (7,7)) # if numpy is on the pi, we'll use this insteas
 #mazeMap = [[ 0, 0, 0, 0, 0, 0, 0], [ 0, 0, 0, 0, 0, 0, 0], [ 0, 0, 0, 0, 0, 0, 0], [ 0, 0, 0, 0, 0, 0, 0], [ 0, 0, 0, 0, 0, 0, 0], [ 0, 0, 0, 0, 0, 0, 0], [ 0, 0, 0, 0, 0, 0, 0]]
 
-X = 3 # starting x point
-Y = 0 # starting y point
 
-lastIX = 0;
-lastIY = 0; 
-
-mazeMap[Y][X] = 5
 
 def turnLeft(orientation):
     Angle(91, 1, 1) 
@@ -50,11 +44,12 @@ def turnRight(orientation):
     if(orientation == 0): # resets to right position
        orientation = 4
     
-#def checkMagnet():
-    #mag = mpu9250.readMagnet()
-    #total_mag=math.sqrt(mag['x']*mag['x']+mag['y']*mag['y']+mag['z']*mag['z'])
+def checkMagnet():
+    mag = mpu9250.readMagnet()
+    total_mag=math.sqrt(mag['x']*mag['x']+mag['y']*mag['y']+mag['z']*mag['z'])
+    return total_mag
     
-def backUp(instance, orientation, X, Y): # need to implement instance of changing map indicator, although could be a separate function
+def backUp(instance, orientation, ref X, ref Y): # need to implement instance of changing map indicator, although could be a separate function
     if(instance == 1):
         while(grovepi.ultrasonicRead(leftUltra) < 30 and grovepi.ultrasonicRead(rightUltra) < 30):
             BP.set_motor_power(BP.PORT_A + BP.PORT_D, 30)
@@ -65,9 +60,10 @@ def backUp(instance, orientation, X, Y): # need to implement instance of changin
         while((grovepi.analogRead(sensor1) > 40 or grovepi.analogRead(sensor2) > 40) or (grovepi.ultrasonicRead(leftUltra) < 30 and grovepi.ultrasonicRead(rightUltra) < 30)):
             BP.set_motor_power(BP.PORT_A + BP.PORT_D, 30)
     if(instance == 3):
+        totalmag = checkMagnet()
         while(totalmag > 100 or (grovepi.ultrasonicRead(leftUltra) < 30 and grovepi.ultrasonicRead(rightUltra) < 30)):
             BP.set_motor_power(BP.PORT_A + BP.PORT_D, 30)
-            checkMagnet()    
+            totalmag = checkMagnet()    
             
     if(checkTurns(orientation) == 1):
       turnLeft(orientation)
@@ -79,7 +75,7 @@ def backUp(instance, orientation, X, Y): # need to implement instance of changin
     elif(grovepi.ultrasonicRead(leftUltra) > 20):
       turnLeft(orientation)
 
-def markMap(occurrence, X, Y): # changes number based on occurrence key (IR, magnet, nothing)
+def markMap(occurrence, ref X, ref Y): # changes number based on occurrence key (IR, magnet, nothing)
     if(occurrence == 4): # case of IR detection
         mazeMap[Y][X] = 4
     elif (occurrence == 3): # case of strong magnetic reading
@@ -87,7 +83,7 @@ def markMap(occurrence, X, Y): # changes number based on occurrence key (IR, mag
     else: # normal readings
         mazeMap[Y][X] = 1
 
-def move(orientation, X, Y):
+def move(orientation, ref X, ref Y):
     if(orientation == 1): # oriented facing front
         Y += 1
     elif(orientation == 2): # oriented front facing left (relative to starting position)
@@ -97,7 +93,7 @@ def move(orientation, X, Y):
     elif(orientation == 4): # oriented front facing right (relative to starting position)
         X -= 1
 
-def checkTurns(orientation, X, Y): # return value of x, y to the left and right of robot
+def checkTurns(orientation, ref X, ref Y): # return value of x, y to the left and right of robot
     if(orientation == 1): # positioned forward relative to starting pt
         if(mazeMap[Y][X + 1] == 1): # left of the robot has been navigated?? DEPENDS ON ORIENTATION, this is on oriented forward, make a variable that tracks orientation values 1 - 4
             return 2 # turn right
@@ -124,11 +120,22 @@ def checkTurns(orientation, X, Y): # return value of x, y to the left and right 
   # to use this, use conditionals to determine whether to move left or right based on after using Back Up or turning
 
 try:
+    totalmag = 0
+    timeStart = time.time()
+    timeRunning = 0
+    X = 3 # starting x point
+    Y = 0 # starting y point
+
+    lastIX = 0;
+    lastIY = 0; 
+
+    mazeMap[Y][X] = 5
+    
     while True:
-        #checkMagnet()
+        totalmag = checkMagnet()
         if(grovepi.ultrasonicRead(middleUltra) < 20):
             if (grovepi.ultrasonicRead(leftUltra) < 25 and grovepi.ultrasonicRead(rightUltra) < 25):
-                backUp(1, orientation, X, Y)
+                backUp(1, orientation, ref X, ref Y)
                 X = lastIX
                 Y = lastIY
             elif (grovepi.ultrasonicRead(leftUltra) > 20):
@@ -156,30 +163,30 @@ try:
                 Angle(12, 1, 1)
                 
         elif((grovepi.analogRead(sensor1) > 40 or grovepi.analogRead(sensor2) > 40)):
-            move(orientation, X, Y)
-            markMap(4, X, Y) # marks heat at space above on map
+            move(orientation, ref X, ref Y)
+            markMap(4, ref X, ref Y) # marks heat at space above on map
             
             X = lastIX
             Y = lastIY
-            backUp(2, orientation, X, Y)
+            backUp(2, orientation, ref X, ref Y)
             timeStart = time.time()
             
-        #elif(totalmag > 100):
-           # move(orientation, X, Y)
-           # markMap(3, X, Y) # marks magnet source above on map
+        elif(totalmag > 100):
+            move(orientation, ref X, ref Y)
+            markMap(3, ref X, ref Y) # marks magnet source above on map
             
-           # X = lastIX
-           # Y = lastIY
-           # backUp(3, orientation, X, Y)
-           # timeStart = time.time()
+            X = lastIX
+            Y = lastIY
+            backUp(3, orientation, ref X, ref Y)
+            timeStart = time.time()
             
         else:
             BP.set_motor_power(BP.PORT_A + BP.PORT_D, -30)
 
 
         if(timeStart + boxTime <= time.time()):
-            move(orientation, X, Y)
-            markMap(1, X, Y)
+            move(orientation, ref X, ref Y)
+            markMap(1, ref X, ref Y)
             print(mazeMap[0], "\n", mazeMap[1], "\n", mazeMap[2], "\n", mazeMap[3], "\n", mazeMap[4], "\n", mazeMap[5], "\n", mazeMap[6], "\n")
             timeStart = time.time()
         
