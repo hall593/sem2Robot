@@ -16,8 +16,6 @@ timeStart = time.time()
 boxTime = 3 # 3 seconds to next box?
 timeRunning = 0
 
-orientation = 1 # starting at forward position
-
 leftUltra = 4 # left sensor
 middleUltra = 8 # middle sensor
 rightUltra = 7 # right sensor
@@ -49,7 +47,7 @@ def checkMagnet():
     total_mag=math.sqrt(mag['x']*mag['x']+mag['y']*mag['y']+mag['z']*mag['z'])
     return total_mag
     
-def backUp(instance, orientation, ref X, ref Y): # need to implement instance of changing map indicator, although could be a separate function
+def backUp(instance, orientation): # need to implement instance of changing map indicator, although could be a separate function
     if(instance == 1):
         while(grovepi.ultrasonicRead(leftUltra) < 30 and grovepi.ultrasonicRead(rightUltra) < 30):
             BP.set_motor_power(BP.PORT_A + BP.PORT_D, 30)
@@ -75,7 +73,7 @@ def backUp(instance, orientation, ref X, ref Y): # need to implement instance of
     elif(grovepi.ultrasonicRead(leftUltra) > 20):
       turnLeft(orientation)
 
-def markMap(occurrence, ref X, ref Y): # changes number based on occurrence key (IR, magnet, nothing)
+def markMap(occurrence, X, Y): # changes number based on occurrence key (IR, magnet, nothing)
     if(occurrence == 4): # case of IR detection
         mazeMap[Y][X] = 4
     elif (occurrence == 3): # case of strong magnetic reading
@@ -83,17 +81,17 @@ def markMap(occurrence, ref X, ref Y): # changes number based on occurrence key 
     else: # normal readings
         mazeMap[Y][X] = 1
 
-def move(orientation, ref X, ref Y):
+def move(orientation, coordinates):
     if(orientation == 1): # oriented facing front
-        Y += 1
+        coordinates[1] += 1
     elif(orientation == 2): # oriented front facing left (relative to starting position)
-        X += 1
+        coordinates[0] += 1
     elif(orientation == 3): # oriented front facing towards start
-        Y -= 1
+        coordinates[1] -= 1
     elif(orientation == 4): # oriented front facing right (relative to starting position)
-        X -= 1
+        coordinates[0] -= 1
 
-def checkTurns(orientation, ref X, ref Y): # return value of x, y to the left and right of robot
+def checkTurns(orientation, X, Y): # return value of x, y to the left and right of robot
     if(orientation == 1): # positioned forward relative to starting pt
         if(mazeMap[Y][X + 1] == 1): # left of the robot has been navigated?? DEPENDS ON ORIENTATION, this is on oriented forward, make a variable that tracks orientation values 1 - 4
             return 2 # turn right
@@ -123,30 +121,33 @@ try:
     totalmag = 0
     timeStart = time.time()
     timeRunning = 0
-    X = 3 # starting x point
-    Y = 0 # starting y point
+    
+    coordinates[0] = 3 # starting x point
+    coordinates[1] = 0 # starting y point
 
-    lastIX = 0;
-    lastIY = 0; 
+    lastIX = coordinates[0];
+    lastIY = coordinates[1]; 
 
-    mazeMap[Y][X] = 5
+    mazeMap[coordinates[1]][coordinates[0]] = 5
+    
+    orientation = 1 # starting at forward position
     
     while True:
         totalmag = checkMagnet()
         if(grovepi.ultrasonicRead(middleUltra) < 20):
             if (grovepi.ultrasonicRead(leftUltra) < 25 and grovepi.ultrasonicRead(rightUltra) < 25):
-                backUp(1, orientation, ref X, ref Y)
-                X = lastIX
-                Y = lastIY
+                backUp(1, orientation, coordinates[0], coordinates[1])
+                coordinates[0] = lastIX
+                coordinates[1] = lastIY
             elif (grovepi.ultrasonicRead(leftUltra) > 20):
                 turnLeft(orientation)
-                lastIX = X
-                lastIY = Y
+                lastIX = coordinates[0]
+                lastIY = coordinates[1]
     
             elif (grovepi.ultrasonicRead(rightUltra) > 20):
                 turnRight(orientation)
-                lastIX = X
-                lastIY = Y
+                lastIX = coordinates[0]
+                lastIY = coordinates[1]
             
             timeStart = time.time()
             
@@ -163,21 +164,21 @@ try:
                 Angle(12, 1, 1)
                 
         elif((grovepi.analogRead(sensor1) > 40 or grovepi.analogRead(sensor2) > 40)):
-            move(orientation, ref X, ref Y)
-            markMap(4, ref X, ref Y) # marks heat at space above on map
+            move(orientation, coordinates)
+            markMap(4, coordinates[0], coordinates[1]) # marks heat at space above on map
             
-            X = lastIX
-            Y = lastIY
-            backUp(2, orientation, ref X, ref Y)
+            coordinates[0] = lastIX
+            coordinates[1] = lastIY
+            backUp(2, orientation, coordinates[0], coordinates[1])
             timeStart = time.time()
             
         elif(totalmag > 100):
-            move(orientation, ref X, ref Y)
-            markMap(3, ref X, ref Y) # marks magnet source above on map
+            move(orientation, coordinates)
+            markMap(3, coordinates[0], coordinates[1]) # marks magnet source above on map
             
-            X = lastIX
-            Y = lastIY
-            backUp(3, orientation, ref X, ref Y)
+            coordinates[0] = lastIX
+            coordinates[1] = lastIY
+            backUp(3, orientation, coordinates[0], coordinates[1])
             timeStart = time.time()
             
         else:
@@ -185,8 +186,8 @@ try:
 
 
         if(timeStart + boxTime <= time.time()):
-            move(orientation, ref X, ref Y)
-            markMap(1, ref X, ref Y)
+            move(orientation, coordinates)
+            markMap(1, coordinates[0], coordinates[1])
             print(mazeMap[0], "\n", mazeMap[1], "\n", mazeMap[2], "\n", mazeMap[3], "\n", mazeMap[4], "\n", mazeMap[5], "\n", mazeMap[6], "\n")
             timeStart = time.time()
         
