@@ -22,52 +22,59 @@ sensor1 = 14 # left IR sensor
 sensor2 = 15 # right IR sensor
 
 mazeMap = numpy.zeros(shape = (7,7)) # if numpy is on the pi, we'll use this insteas
-orientation = [0] # orientation orray to pass by address
+orientation = [0] # orientation array to pass by address
 
-def turnLeft(orientation):
+def turnLeft(orientation): # needs orientation array to update as needed
     Angle(91, 1, 1) 
     orientation[0] += 1
     if(orientation[0] == 5): # resets orientation to forward
        orientation[0] = 1 
 
-def turnRight(orientation): 
+def turnRight(orientation): # same as turn left
     Angle(91, 2, 1)
     orientation[0] -= 1
     if(orientation[0] == 0): # resets to right position
        orientation[0] = 4
     
-def checkMagnet(): # really need to test this out
+def checkMagnet(): # returns total magnitude of any magnetic field detected
     mag = mpu9250.readMagnet()
     total_mag=math.sqrt(mag['x']*mag['x']+mag['y']*mag['y']+mag['z']*mag['z'])
     return total_mag
     
-def backUp(instance, orientation): # need to implement instance of changing map indicator, although could be a separate function
-    if(instance == 1):
+def backUp(instance, orientation, X, Y): # needs instance integer, orientation and coordinates
+    # based on instance, backs up based on what instance it encounted
+   
+    if(instance == 1): # backs up from a dead end, will continue until an intersection is reached
         while(grovepi.ultrasonicRead(leftUltra) < 30 and grovepi.ultrasonicRead(rightUltra) < 30):
             BP.set_motor_power(BP.PORT_A + BP.PORT_D, 30)
-        BP.set_motor_power(BP.PORT_A + BP.PORT_D, 30)
-        time.sleep(1)
         
-    if(instance == 2): # in the instance that a magnet is sensed
+    if(instance == 2): # backs up when IR is sensed, and continues until nearest intersection
         while((grovepi.analogRead(sensor1) > 40 or grovepi.analogRead(sensor2) > 40) or (grovepi.ultrasonicRead(leftUltra) < 30 and grovepi.ultrasonicRead(rightUltra) < 30)):
             BP.set_motor_power(BP.PORT_A + BP.PORT_D, 30)
-    if(instance == 3):
+            
+    if(instance == 3): # backs up when magnet is sensed, and continues until next intersection
         totalmag = checkMagnet()
-        while(totalmag > 100 or (grovepi.ultrasonicRead(leftUltra) < 30 and grovepi.ultrasonicRead(rightUltra) < 30)):
+        while(totalmag > 300 or (grovepi.ultrasonicRead(leftUltra) < 30 and grovepi.ultrasonicRead(rightUltra) < 30)):
             BP.set_motor_power(BP.PORT_A + BP.PORT_D, 30)
             totalmag = checkMagnet()    
             
-    if(checkTurns(orientation[0]) == 1):
+            
+     BP.set_motor_power(BP.PORT_A + BP.PORT_D, 30)
+     time.sleep(1)
+        
+        
+    if(checkTurns(orientation[0], X, Y) == 1):
       turnLeft(orientation)
-    if(checkTurns(orientation[0]) == 2):
+    if(checkTurns(orientation[0], X, Y) == 2):
       turnRight(orientation)
             
-    elif(grovepi.ultrasonicRead(rightUltra) > 20):
+    elif(grovepi.ultrasonicRead(rightUltra) > 20): # just in case checkTurns fails to return a value, automatically picks right turn first
       turnRight(orientation)
     elif(grovepi.ultrasonicRead(leftUltra) > 20):
       turnLeft(orientation)
 
-def markMap(occurrence, X, Y): # changes number based on occurrence key (IR, magnet, nothing)
+def markMap(occurrence, X, Y): # has only int parameters
+    # changes number based on occurrence key (IR, magnet, nothing)
     if(occurrence == 4): # case of IR detection
         mazeMap[Y][X] = 4
     elif (occurrence == 3): # case of strong magnetic reading
@@ -75,7 +82,7 @@ def markMap(occurrence, X, Y): # changes number based on occurrence key (IR, mag
     else: # normal readings
         mazeMap[Y][X] = 1
 
-def move(orientation, coordinates):
+def move(orientation, coordinates): # needs an integer value and coordinates array
     if(orientation == 1): # oriented facing front
         coordinates[1] += 1
     elif(orientation == 2): # oriented front facing left (relative to starting position)
@@ -85,7 +92,8 @@ def move(orientation, coordinates):
     elif(orientation == 4): # oriented front facing right (relative to starting position)
         coordinates[0] -= 1
 
-def checkTurns(orientation, X, Y): # return value of x, y to the left and right of robot
+def checkTurns(orientation, X, Y): # needs only int values
+    # return value of x, y to the left and right of robot
     if(orientation == 1): # positioned forward relative to starting pt
         if(mazeMap[Y][X + 1] == 1): # left of the robot has been navigated?? DEPENDS ON ORIENTATION, this is on oriented forward, make a variable that tracks orientation values 1 - 4
             return 2 # turn right
