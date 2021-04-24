@@ -10,11 +10,9 @@ from TurnDegrees import Angle
 from MPU9250 import MPU9250
 
 BP = brickpi3.BrickPi3()
-#mpu9250 = MPU9250()
+mpu9250 = MPU9250()
 
-timeStart = time.time()
-boxTime = 3 # 3 seconds to next box?
-timeRunning = 0
+boxTime = 3 # time interval until map updates
 
 leftUltra = 4 # left sensor
 middleUltra = 8 # middle sensor
@@ -23,26 +21,22 @@ rightUltra = 7 # right sensor
 sensor1 = 14 # left IR sensor
 sensor2 = 15 # right IR sensor
 
-
-
 mazeMap = numpy.zeros(shape = (7,7)) # if numpy is on the pi, we'll use this insteas
-#mazeMap = [[ 0, 0, 0, 0, 0, 0, 0], [ 0, 0, 0, 0, 0, 0, 0], [ 0, 0, 0, 0, 0, 0, 0], [ 0, 0, 0, 0, 0, 0, 0], [ 0, 0, 0, 0, 0, 0, 0], [ 0, 0, 0, 0, 0, 0, 0], [ 0, 0, 0, 0, 0, 0, 0]]
-
-
+orientation = [0] # orientation orray to pass by address
 
 def turnLeft(orientation):
     Angle(91, 1, 1) 
-    orientation += 1
-    if(orientation == 5): # resets orientation to forward
-       orientation = 1 
+    orientation[0] += 1
+    if(orientation[0] == 5): # resets orientation to forward
+       orientation[0] = 1 
 
 def turnRight(orientation): 
     Angle(91, 2, 1)
-    orientation -= 1
-    if(orientation == 0): # resets to right position
-       orientation = 4
+    orientation[0] -= 1
+    if(orientation[0] == 0): # resets to right position
+       orientation[0] = 4
     
-def checkMagnet():
+def checkMagnet(): # really need to test this out
     mag = mpu9250.readMagnet()
     total_mag=math.sqrt(mag['x']*mag['x']+mag['y']*mag['y']+mag['z']*mag['z'])
     return total_mag
@@ -63,9 +57,9 @@ def backUp(instance, orientation): # need to implement instance of changing map 
             BP.set_motor_power(BP.PORT_A + BP.PORT_D, 30)
             totalmag = checkMagnet()    
             
-    if(checkTurns(orientation) == 1):
+    if(checkTurns(orientation[0]) == 1):
       turnLeft(orientation)
-    if(checkTurns(orientation) == 2):
+    if(checkTurns(orientation[0]) == 2):
       turnRight(orientation)
             
     elif(grovepi.ultrasonicRead(rightUltra) > 20):
@@ -130,7 +124,7 @@ try:
 
     mazeMap[coordinates[1]][coordinates[0]] = 5
     
-    orientation = 1 # starting at forward position
+    orientation[0] = 1 # starting at forward position
     
     while True:
         totalmag = checkMagnet()
@@ -164,7 +158,7 @@ try:
                 Angle(12, 1, 1)
                 
         elif((grovepi.analogRead(sensor1) > 40 or grovepi.analogRead(sensor2) > 40)):
-            move(orientation, coordinates)
+            move(orientation[0], coordinates)
             markMap(4, coordinates[0], coordinates[1]) # marks heat at space above on map
             
             coordinates[0] = lastIX
@@ -172,8 +166,8 @@ try:
             backUp(2, orientation, coordinates[0], coordinates[1])
             timeStart = time.time()
             
-        elif(totalmag > 100):
-            move(orientation, coordinates)
+        elif(totalmag > 300):
+            move(orientation[0], coordinates)
             markMap(3, coordinates[0], coordinates[1]) # marks magnet source above on map
             
             coordinates[0] = lastIX
@@ -184,10 +178,10 @@ try:
         else:
             BP.set_motor_power(BP.PORT_A + BP.PORT_D, -30)
 
-
         if(timeStart + boxTime <= time.time()):
-            move(orientation, coordinates)
+            move(orientation[0], coordinates)
             markMap(1, coordinates[0], coordinates[1])
+            
             print(mazeMap[0], "\n", mazeMap[1], "\n", mazeMap[2], "\n", mazeMap[3], "\n", mazeMap[4], "\n", mazeMap[5], "\n", mazeMap[6], "\n")
             timeStart = time.time()
         
