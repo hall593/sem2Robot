@@ -78,7 +78,6 @@ def backUp(instance, orientation): # need to implement instance of changing map 
       turnRight(orientation)
     elif(grovepi.ultrasonicRead(leftUltra) > 20):
       turnLeft(orientation)
-    return orientation
 
 def markMap(occurrence, X, Y): # changes number based on occurrence key (IR, magnet, nothing)
     if(occurrence == 4): # case of IR detection
