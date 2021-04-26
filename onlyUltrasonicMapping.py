@@ -184,5 +184,7 @@ except TypeError as error:
     print(error)
     BP.reset_all()
 except KeyboardInterrupt: # except the program gets interrupted by Ctrl+C on the keyboard.
+    BP.set_motor_dps(BP.PORT_C, -10) # drop off mechanism
+    time.sleep(1)
     print(mazeMap[0], "\n", mazeMap[1], "\n", mazeMap[2], "\n", mazeMap[3], "\n", mazeMap[4], "\n", mazeMap[5], "\n", mazeMap[6], "\n")
     BP.reset_all()
